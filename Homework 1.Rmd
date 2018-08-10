@@ -1,0 +1,559 @@
+---
+title: "STA380 - Homework 1"
+author: "Emily Buzzelli"
+date: "August 8, 2018"
+output: html_document
+---
+
+#Probability Practice
+
+##Part A
+
+The expected number of random clickers = .3
+
+65% of responders chose "Yes" & 35% of responders chose "No"
+
+Let's assume that 100 people responded to the survey (to make it easy on ourselves).  
+That means the number of random/truthful clickers are:
+
+```
+random_clicks = 100*.3
+truthful_clicks = 100-random_clicks
+```
+```{r echo=FALSE}
+cat("There are",100*.3, "random clickers.")
+cat("There are",100-(100*.3), "truthful clickers.")
+```
+
+Given there is an even chance that the random clickers chose yes as that they chose no, that means that 15 random clickers chose yes and 15 random clickers chose no. This can be used to calculate the total number of truthful clickers that clicked "Yes" by simply subtracting 15 from the total number of yeses (65 assuming 100 responses).  Doing the math:
+
+```
+Truthful_yes = 65-(random_clicks)*.5
+```
+
+```{r echo=FALSE}
+cat("There are",65-(30*.5), "truthful yeses.")
+```
+
+Now, the fraction of people who are truthful clickers thatn answered yes can be calculated by dividing the answer from above by the total number of truthful clicks (70 in this case):
+
+```
+Yes_proportion = Truthful_yes/truthful_clicks
+```
+
+```{r echo=FALSE}
+cat("The proportion is:", 50/70)
+```
+
+##Part B
+This problem can be solved using Bayes Theorem, which says the following:
+                
+P(B|A) =  P(A|B)P(B) / [P(A|B)P(B) + P(A|Bc)P(Bc)]
+
+
+Let's define the following:   
+
+* Event A = Someone has tested positively for the disease  
+* Event B = Someone has disease  
+
+
+We know from the problem description that:
+
+* P(B) = .000025    
+* P(A|B) = .993   
+* P(Ac|Bc) = .9999    
+
+We need to find P(A|Bc) and P(Bc) to be able to calculate Bayes Theorem.  This can be done by subtracting P(Ac|Bc) and P(B) from 1:
+
+```
+P_disease_negtest= 1-.9999
+P_nodisease= 1-.000025
+```
+
+```{r echo=FALSE}
+
+cat("Probability of disease given negative test:",1-.9999)
+cat("Probability of no disease:",1-.000025)
+
+```
+
+Next, calculate Probability of disease given a positive test (P_disease_postest) using Bayes Theorem:
+
+```
+P_disease_postest= (.993*.000025)/((.993*.000025)+(.0001*.999975))
+
+```
+```{r echo=FALSE}
+cat("Probability disease given positive test:",(.993*.000025)/((.993*.000025)+(.0001*.999975)))
+
+```
+
+#####This result implies that the test should not be given universally, as if it were, only 20% of people with a positive result would actually have the disease.
+
+#Green Buildings
+```{r echo=FALSE,results='hide',message=FALSE}
+library(ggplot2)
+
+#Read in daa
+greenbuildings <- read.csv("greenbuildings.csv")
+
+
+#Create a comparison for each building to its cluster's rent
+greenbuildings$cluster_compare = greenbuildings$Rent/greenbuildings$cluster_rent
+
+#Remove outliers - lease rates lower than 10 and rents higher than 100
+greenbuildings = greenbuildings[greenbuildings$leasing_rate>10,]
+greenbuildings = greenbuildings[greenbuildings$Rent<=100,]
+
+#Tell R that some of the variables are factors
+greenbuildings$green_rating = factor(greenbuildings$green_rating) 
+greenbuildings$renovated = factor(greenbuildings$renovated)
+greenbuildings$class_a = factor(greenbuildings$class_a)
+greenbuildings$class_b = factor(greenbuildings$class_b)
+greenbuildings$LEED = factor(greenbuildings$LEED)
+greenbuildings$Energystar = factor(greenbuildings$Energystar)
+greenbuildings$net = factor(greenbuildings$net)
+greenbuildings$amenities = factor(greenbuildings$amenities)
+greenbuildings$cluster = factor(greenbuildings$cluster)
+
+
+onlygreen = greenbuildings[greenbuildings$green_rating==1,]
+
+nongreen = greenbuildings[greenbuildings$green_rating==0,]
+
+#find median rent for green v. non-green buildings
+mediangreen = median(onlygreen$Rent)
+mediannongreen = median(nongreen$Rent)
+
+
+```
+
+I was able to replicate the results of the staff member.  The box plot below shows that green buildings tend to have higher rents:
+
+```{r echo=FALSE,results='hide',message=FALSE}
+ggplot(greenbuildings, aes(x=green_rating, y=Rent)) +  geom_boxplot(fill='#A4A4A4', color="red")
+
+```
+
+However, it could be that rents are just higher in certain areas and those just happen to be areas that have green buildings.  Let's adjust for this by dividing each rent by the provided cluster rent.  This will give a better way to measure - we have the rent of a particular building RELATIVE to other buildings in that area.  Let's re-do the box-plot:
+
+```{r echo=FALSE,results='hide',message=FALSE}
+ggplot(greenbuildings, aes(x=green_rating, y=cluster_compare)) +  geom_boxplot(fill='#A4A4A4', color="blue")
+
+```
+
+Still seems like green buildings have the advantage, but some additional factors may be at play...Let's figure out the proportion of green buildings that are class_a & proportion of green buildings that have amenities
+
+```{r echo=FALSE}
+greennice = length(onlygreen[onlygreen$class_a == 1,1])/length(onlygreen[,1])
+cat("The proportion of green buildings that are class A is", greennice)
+greenamenities = length(onlygreen[onlygreen$amenities == 1,1])/length(onlygreen[,1])
+cat("The proportion of green buildings that have amenities is", greenamenities)
+
+```
+
+80% of green buildings are Class A!  73% of green buildings have amenities.  The box plots below shows that these features are also correlated with higher rents. Perhaps that is the reason for the rent boost, rather than the fact that the building is green:
+
+```{r echo=FALSE,results='hide',message=FALSE}
+ggplot(greenbuildings, aes(x=class_a, y=cluster_compare)) +  geom_boxplot(fill='#A4A4A4', color="blue")+ggtitle("Class A and Rents")
+
+ggplot(greenbuildings, aes(x=amenities, y=cluster_compare)) +  geom_boxplot(fill='#A4A4A4', color="cyan")+ggtitle("Amenities and Rents")
+
+```
+
+Let's shrink the data set to only compare nice green buildings with amenities to nice non-green buildings with amenities
+
+
+```{r echo=FALSE,results='hide',message=FALSE}
+
+nicegreen = onlygreen[onlygreen$class_a == 1 & onlygreen$amenities == 1, ]
+nicenongreen = nongreen[nongreen$class_a == 1 & nongreen$amenities == 1, ]
+niceonly = greenbuildings[greenbuildings$class_a ==1 & greenbuildings$amenities ==1, ]
+
+#Now let's take the median green rent v. the median non green rent
+GreenNiceMed = median(nicegreen$cluster_compare)
+NonGreenNiceMed = median(nicenongreen$cluster_compare)
+diffnice = GreenNiceMed-NonGreenNiceMed
+
+ggplot(niceonly, aes(x=green_rating, y=cluster_compare)) +  geom_boxplot(fill='#A4A4A4', color="blue") +ggtitle("Nice Buildings with Amenities")
+```
+
+This still shows that green buildings have a slight advantage over non-green, though the box plot shows there are some buildings that are not green that have MUCH higher rents compared to others in their cluser. Let's repeat the same exercise for non-nice buildings with amenities, non-nice buildings without amenities and nice buildings without amenities
+
+
+```{r echo=FALSE,results='hide',message=FALSE}
+
+NiceWOAgreen = onlygreen[onlygreen$class_a == 1 & onlygreen$amenities == 0, ]
+NiceWOAregular = nongreen[nongreen$class_a == 1 & nongreen$amenities == 0, ]
+niceWOAonly = greenbuildings[greenbuildings$class_a ==1 & greenbuildings$amenities ==0, ]
+
+MedNiceWOAgreen = median(NiceWOAgreen$cluster_compare)
+MedNiceWOAreg = median(NiceWOAregular$cluster_compare)
+diffniceWO = MedNiceWOAgreen-MedNiceWOAreg
+
+ggplot(niceWOAonly, aes(x=green_rating, y=cluster_compare)) +  geom_boxplot(fill='#A4A4A4', color="red") +ggtitle("Nice Buildings without Amenities")
+```
+
+In this case (nice buildings without amenities) green buildings still look like they have the advantage.  Let's try Non-Nice buildings with amenities
+
+
+```{r echo=FALSE,results='hide',message=FALSE}
+NotNiceWAgreen = onlygreen[onlygreen$class_a == 0 & onlygreen$amenities == 1, ]
+NotNiceWAregular = nongreen[nongreen$class_a == 0 & nongreen$amenities == 1, ]
+NotniceWAonly = greenbuildings[greenbuildings$class_a ==0 & greenbuildings$amenities ==1, ]
+
+MedNotNiceWAgreen = median(NotNiceWAgreen$cluster_compare)
+MedNotNiceWAreg = median(NotNiceWAregular$cluster_compare)
+diffnnW = MedNotNiceWAgreen-MedNotNiceWAreg
+
+
+ggplot(NotniceWAonly, aes(x=green_rating, y=cluster_compare)) +  geom_boxplot(fill='#A4A4A4', color="green") +ggtitle("Not Nice Buildings with Amenities")
+```
+
+Green wins in this case as well.  Finally let's try not nice buildings without amenities
+
+```{r echo=FALSE,results='hide',message=FALSE}
+NotNiceWOAgreen = onlygreen[onlygreen$class_a == 0 & onlygreen$amenities == 0, ]
+NotNiceWOAregular = nongreen[nongreen$class_a == 0 & nongreen$amenities == 0, ]
+NotniceWOAonly = greenbuildings[greenbuildings$class_a ==0 & greenbuildings$amenities ==0, ]
+
+MedNotNiceWOAgreen = median(NotNiceWOAgreen$cluster_compare)
+MedNotNiceWOAreg = median(NotNiceWOAregular$cluster_compare)
+diffnnWO = MedNotNiceWOAgreen-MedNotNiceWOAreg
+
+ggplot(NotniceWOAonly, aes(x=green_rating, y=cluster_compare)) +  geom_boxplot(fill='#A4A4A4', color="cyan") +ggtitle("Not Nice Buildings without Amenities")
+```
+
+
+#####Green wins again!  So it seems like there does seem to be an advantage to building a green building.  The difference in expected rent would depend on the type of green building the developer ends up with, but how much and how quickly the investment could be paid off depends on the niceness of the building and if the developer plans to include amenities.  Per my calculation, the builder should only expect an increase in rent compared to similar building types as follows:
+
+* 2.82% increase for Class A buildings with amenities
+* 4.30% increase for Class A buildings without amenities
+* 5.34% increase for non-Class A buildings with amenities
+* 8.08% increase for non-Class A buildings without amenities
+
+#####It may seem from above that the builder should build the green non-Class A building without amenities.  HOWEVER, this is not necessarily true - the percentage increase for these types of buildings is higher because the rent for them tends to be lower in general.  In order to determine if the builder should make the investment in a green building, we would need to know rents for properties on East Ceasar Chaves for each of these 4 types.  Then we could calculate out the monthly $ impact for each % increase and when the investment would pay off.  Without that information, all we can say is that there appears to be an advantage for green buildings, but we don't know if the investment is worth it in this case.
+
+#Bootstrapping
+To figure out which of the specified indexes are the safest, and which are the the most risky, first the close to close changes for each fund was plotted over time:
+
+```{r echo=FALSE,results='hide',message=FALSE}
+
+library(mosaic)
+library(quantmod)
+library(foreach)
+
+# Import the prescribed indexes
+mystocks = c("TLT", "LQD", "SPY", "EEM", "VNQ")
+getSymbols(mystocks)
+
+# Adjust for splits and dividends
+TLTa = adjustOHLC(TLT)
+LQDa = adjustOHLC(LQD)
+SPYa = adjustOHLC(SPY)
+EEMa = adjustOHLC(EEM)
+VNQa = adjustOHLC(VNQ)
+
+# Combine close to close changes in a single matrix
+all_returns = cbind(ClCl(TLTa),ClCl(LQDa),ClCl(SPYa), ClCl(EEMa), ClCl(VNQa))
+head(all_returns)
+all_returns = as.matrix(na.omit(all_returns))
+
+```
+
+Let's plot close to close returns of all funds on the same graph to to get a relative sense of their variability:
+
+```{r echo=FALSE,results='hide',message=FALSE,fig.width = 9, fig.height=8}
+plot(all_returns[,4],col = "black",ylim = c(-.3, .3), main = "Close to Close Comparison", type="l",ylab="Return")
+legend("topright", c("EEM","VNQ","SPY","TLT","LQD"), col = c("black", "red", "cyan","green","blue"), lwd = 1)
+lines(all_returns[,5],col = "red")
+lines(all_returns[,3],col = "cyan")
+lines(all_returns[,1],col = "green")
+lines(all_returns[,2],col = "blue")
+
+
+```
+
+This plot is a little messy, but it does seem to show that returns from Emerging Markets (EEM) and Real Estate (VNQ) are the most rewarding/riskiest - we see the highest variability in returns, which US Treasury Bonds (TLT) and Investment Grade Corporate Bonds (LQD) are our safest investments (the least variablity in returns).
+
+To further sense check this theory, let's take the average of the absolute value of returns for each fund.  The riskier funds should have higher values and the safer funds should have lower values.  
+
+For further confirmation, the range of each variable will be calculated.  The range will show the maximum variability for each fund.
+
+```{r echo=FALSE,results='hide',message=FALSE}
+library(data.table)
+#Take the absolute value of all returns
+abs_returns = abs(all_returns)
+
+#Take the mean of the absolute value for each fund
+avg_abs = c(mean(abs_returns[,1]), mean(abs_returns[,2]) ,mean(abs_returns[,3]),mean(abs_returns[,4]), mean(abs_returns[,5]))
+
+#find the range for each fund
+return_range = rbind(range(all_returns[,1]),range(all_returns[,2]),range(all_returns[,3]),range(all_returns[,4]),range(all_returns[,5]) )
+
+#Transpose so that I can add to the data frame with absolute average in it
+return_range = t(return_range)
+
+#Bind range and absolute mean for each fund
+avg_abs= rbind(avg_abs,return_range)
+avg_abs = data.frame(avg_abs)
+
+#Update column names
+colnames(avg_abs) <- c("TLT","LQD","SPY","EEM","VNQ")
+
+#Update Row names
+avg_abs = (setattr(avg_abs, "row.names", c("abs_mean", "low", "high")))
+
+library(gridExtra)
+library(grid)
+grid.table(round(avg_abs,digits=6))
+
+
+```
+
+From the table above, it can be see that the assumptions determined from the graph seem to hold true.  EEM and VNQ have the highest absolute value average return and the largest retrun ranges.  TLT and LQD have the lowest absolute mean values and smaller ranges - implying they are safer investments.  SPY looks to be somewhere in the middle.
+
+As a result, the "safe" portfolio will have the following allocation:
+
+* 35% allocation in TLT    
+* 35% allocation in LQD    
+* 30% allocation in SPY    
+
+The majority of the money is allocated in funds deemed "safe".  The 30% allocation in SPY is meant to keep some similarity between this portfolio and the "aggressive" portfolio, which will have the following allocation:  
+
+* 35% allocation in EEM    
+* 35% allocation in VNQ    
+* 30% allocation in SPY    
+
+The safe & aggressive portfolios will be compared to a portfolio where there is an even 20% split between funds over a 4 week period.  Using bootstrap to simulate possibilities for each of these portfolios produces the following VaR:
+
+```{r echo=FALSE,results='hide',message=FALSE}
+library(mosaic)
+library(quantmod)
+library(foreach)
+
+set.seed(80418)
+
+# Even Allocation portfolio - loop over four trading weeks
+
+initial_wealth = 100000
+sim1 = foreach(i=1:5000, .combine='rbind') %do% {
+	total_wealth1 = initial_wealth
+	weights = c(0.2, 0.2, 0.2, 0.2, 0.2)
+	holdings = weights * total_wealth1
+	n_days = 20
+	wealthtracker1 = rep(0, n_days)
+	for(today in 1:n_days) {
+	  return.today = resample(all_returns, 1, orig.ids=FALSE)
+		holdings = holdings + holdings*return.today
+		total_wealth1 = sum(holdings)
+		wealthtracker1[today] = total_wealth1
+		holdings = weights * total_wealth1
+	}
+	wealthtracker1
+}
+
+
+# Calculate 5% value at risk for portfolio 1
+Var_1 = initial_wealth - quantile(sim1[,n_days], 0.05) 
+
+set.seed(80418)
+
+#Safe Portfolio
+initial_wealth = 100000
+sim2 = foreach(i=1:5000, .combine='rbind') %do% {
+	total_wealth2 = initial_wealth
+	weights = c(0.35, 0.35, 0.3, 0, 0)
+	holdings = weights * total_wealth2
+	n_days = 20
+	wealthtracker2 = rep(0, n_days)
+	for(today in 1:n_days) {
+	  return.today = resample(all_returns, 1, orig.ids=FALSE)
+		holdings = holdings + holdings*return.today
+		total_wealth2 = sum(holdings)
+		wealthtracker2[today] = total_wealth2
+		holdings = weights * total_wealth2
+	}
+	wealthtracker2
+}
+
+# Calculate 5% value at risk for portfolio 2
+Var_2 = initial_wealth - quantile(sim2[,n_days], 0.05) 
+
+
+set.seed(80418)
+
+#Aggressive Portfolio
+initial_wealth = 100000
+sim3 = foreach(i=1:5000, .combine='rbind') %do% {
+	total_wealth3 = initial_wealth
+	weights = c(0, 0, 0.3, 0.35, 0.35)
+	holdings = weights * total_wealth3
+	n_days = 20
+	wealthtracker3 = rep(0, n_days)
+	for(today in 1:n_days) {
+	  return.today = resample(all_returns, 1, orig.ids=FALSE)
+		holdings = holdings + holdings*return.today
+		total_wealth3 = sum(holdings)
+		wealthtracker3[today] = total_wealth3
+		holdings = weights * total_wealth3
+	}
+	wealthtracker3
+}
+
+
+# Calculate 5% value at risk for portfolio 3
+Var_3 = initial_wealth - quantile(sim3[,n_days], 0.05) 
+
+#Put VaR results in a nicely labelled data frame
+VaR = data.frame(c( Var_2, Var_1, Var_3))
+colnames(VaR) <- c("VaR @ 5%")
+VaR = (setattr(VaR, "row.names", c("Equal Allocation", "Safe", "Aggressive")))
+
+#Provide a table to the user
+grid.table(round(VaR,digits=2))
+
+
+```
+
+From the VaR, we can see that the risked loss is greatest for the aggressive portfolio.  However, the histogram of the generated PnL for all simulations of each individual portfolio also have a story to tell -- the aggressive portfolio also provides the greatest opportunity for gain.  High risk, high reward must be a saying for a reason!  Or maybe - no pain, no gain is more appropriate?:
+
+```{r echo=FALSE,results='hide',message=FALSE,fig.width = 9, fig.height=8}
+hist(sim2[,n_days]- initial_wealth, breaks=30, xlab = "Safe Portfolio PnL($)", main = "Safe Portfolio", col = "blue", xlim = c(-40000,100000), ylim=c(0,600))
+
+```
+
+```{r echo=FALSE,results='hide',message=FALSE,fig.width = 9, fig.height=8}
+hist(sim1[,n_days]- initial_wealth, breaks=30, xlab = "Equal Split Portfolio PnL($)", main = "Equal Split Portfolio", col = "red", xlim = c(-40000,100000), ylim=c(0,1000))
+
+```
+
+
+```{r echo=FALSE,results='hide',message=FALSE,fig.width = 9, fig.height=8}
+hist(sim3[,n_days]- initial_wealth, breaks=30, xlab = "Aggressive Portfolio PnL($)", main = "Aggressive Portfolio", col = "green", xlim = c(-40000,100000), ylim=c(0,1400))
+
+```
+
+
+The safe portfolio produces a histogram where the bins are tight and close to the center of the graph ($0 PnL) - showing that quite often the returns for this portfolio hover around zero.  The aggresive portfolio has wide bins that are more spread out along the x-axis - showing more variability in returns.
+
+
+
+
+#Market Segmentation
+
+For this problem, spam, adult, uncategorized & chatter were all removed prior to starting - the assumption being that these particular items would not help in determining people's preferences/types of people who follow Nutrition H2O.  (The assumption is that the "adult" tweets are spam).
+
+First, let's run PCA on the data.  Let's split the users into 2 groups - those that tweet a lot (>50) and those that don't tweet a lot to see if this brings any insights.  Let's plot the results - including the number of tweets category for each user
+
+```{r echo=FALSE}
+
+library(ggplot2)
+
+marketing <- read.csv("social_marketing.csv", row.names=1)
+
+#Remove spam, adult, uncategorized & chatter -- these aren't going to give me insights
+#(The assumption with removing adult is that these people are trolls/spammers/bots)
+marketing1 = marketing[,-c(1,5,35,36)]
+
+# First normalize phrase counts to phrase frequencies.
+# (often a sensible first step for count data, before z-scoring)
+Z = marketing1/rowSums(marketing1)
+
+#figure out who is posting the most & give some scores for other categories
+comment_num = data.frame(rowSums(marketing))
+comment_bucket = rep('<50', dim(comment_num)[1])
+comment_bucket[comment_num$rowSums.marketing.>50]='>50'
+comment_num = cbind(comment_num,comment_bucket)
+
+
+#PCA
+set.seed(8418)
+pc2 = prcomp(Z, scale=TRUE, rank=2)
+loadings = pc2$rotation
+scores = pc2$x
+
+
+#Question 1 - where do the observations land in PC space?
+qplot(scores[,1], scores[,2], color=comment_num$comment_bucket, xlab='Component 1', ylab='Component 2')
+```
+
+This plot isn't super helpful - the number of tweets people make don't seem to give any good information about how PCA is separating people.  Perhaps we can see how the individual PCs are loaded on the original variables, but printing the top categories associated with each component:
+
+* First Component (positive)
+
+```{r echo=FALSE}
+# Question 2: how are the individual PCs loaded on the original variables?
+# The top categories associated with each component
+o1 = order(loadings[,1], decreasing=TRUE)
+colnames(Z)[head(o1,10)]
+```
+
+*First Component (negative)
+
+```{r echo=FALSE}
+colnames(Z)[tail(o1,10)]
+```
+
+* Second Component (positive)
+
+```{r echo=FALSE}
+
+o2 = order(loadings[,2], decreasing=TRUE)
+colnames(Z)[head(o2,10)]
+```
+
+* Second Component (negative)
+
+```{r echo=FALSE}
+colnames(Z)[tail(o2,10)]
+```
+
+
+It looks like PCA is separating in the first component by age -- the resulting categories = religion, parenting, family, news, politics vs. college_uni, online_gaming, photo_sharing, personal_fitness, etc.  The second component seems to indicate a separation b/t people who care a lot about how they look/fitness vs. people who are interested in more "academic" types of pursuits.  Lets try giving some more scores based on old v. young and jock v. nerd to see if the graph becomes more meaningful ...
+
+```{r echo=FALSE}
+young_score = rep(0, dim(comment_num)[1])
+young_score = rowSums(marketing[,c(15,17,14,28,4,23,33,32,16)])
+old_score = rep(0, dim(comment_num)[1])
+old_score = rowSums(marketing[,c(7,27,29,10,25,13,8,24)])
+
+brain_score = rep(0, dim(comment_num)[1])
+brain_score = rowSums(marketing[,c(21,2,13,14,4,6,17)])
+
+beauty_score = rep(0, dim(comment_num)[1])
+beauty_score = rowSums(marketing[,c(16,32,23,9,19,28,7)])
+
+#Add to dataset
+marketing2 = cbind(marketing,young_score, old_score, brain_score,beauty_score)
+marketing2 = marketing2[,-c(1,5,35,36)]
+Z2 = marketing2/rowSums(marketing2)
+
+#Now let's replot with this new "category" & see if we find anything interesting
+young<-qplot(scores[,1], scores[,2], color=Z2$young_score, xlab='Component 1', ylab='Component 2')
+young+scale_color_gradient(low="blue", high="red")
+old<-qplot(scores[,1], scores[,2], color=Z2$old_score, xlab='Component 1', ylab='Component 2')
+old+scale_color_gradient(low="blue", high="red")
+brain<-qplot(scores[,1], scores[,2], color=Z2$brain_score, xlab='Component 1', ylab='Component 2')
+brain+scale_color_gradient(low="blue", high = "cyan")
+beauty<-qplot(scores[,1], scores[,2], color=Z2$beauty_score, xlab='Component 1', ylab='Component 2')
+beauty+scale_color_gradient(low="blue", high = "cyan")
+
+```
+
+####This seems to give more insight into the separation/groups PCA is putting Nutrition H2O followers into.  It seems there is a segment of the population of followers that is younger - they tweet more about things that are traditionally associated with young adults (perhaps high school or college students).  They post about shopping and online gaming, fashion, fitness, colleges and other factors associated to younger groups of people.  There is another group that posts more about family/parenting, news, politics and religion.  These are interests more commonly associated with older adults - though perhaps not that old.  The existence of parenting in this segment of the populationg implies they are 30-40 year olds with children still in the home.
+
+####The second PCA component seems to split the jocks from the nerds.  More positive scores in component two is associated with health, fitness, & beauty.  More negative scores in this component are associated with technology (gaming, computuers, tv) and current events/politics.
+
+
+
+
+
+
+
+
+
+
+
+
+
